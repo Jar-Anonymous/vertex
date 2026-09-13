@@ -1,1 +1,126 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Jar-Anonymous/Script/refs/heads/main/Vertex.lua"))()
+--[[
+    Vertex Hub Loader
+    Owner: Jar  |  Made by: Jar Local  |  Country: Indonesia
+    Repo: Jar-Anonymous/vertex
+--]]
+
+local LOADER_VERSION = "1.0.0"
+local TARGET = "https://raw.githubusercontent.com/Jar-Anonymous/Script/refs/heads/main/Vertex.lua"
+
+if _G.VertexHubLoaded then
+    warn("[VertexHub] Already loaded. Skipping duplicate.")
+    return
+end
+_G.VertexHubLoaded = true
+
+warn("[VertexHub] Loader v" .. LOADER_VERSION)
+warn("[VertexHub] Fetching core...")
+
+local function safeFetch(url)
+    local ok, body = pcall(function()
+        return game:HttpGet(url, true)
+    end)
+    if not ok or not body or body == "" then
+        return nil, tostring(body)
+    end
+    return body
+end
+
+local function getParent()
+    if syn and syn.protect_gui then
+        return nil
+    end
+    if gethui then
+        local ok, hui = pcall(gethui)
+        if ok and hui then return hui end
+    end
+    local ok, cg = pcall(function() return game:GetService("CoreGui") end)
+    if ok and cg then return cg end
+    return game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+end
+
+local function makeWatermark()
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "VertexHubWatermark"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.DisplayOrder = 9999
+
+    local parented = false
+    if syn and syn.protect_gui then
+        pcall(function()
+            syn.protect_gui(gui)
+            gui.Parent = game:GetService("CoreGui")
+            parented = true
+        end)
+    end
+    if not parented and gethui then
+        pcall(function() gui.Parent = gethui() parented = true end)
+    end
+    if not parented then
+        pcall(function() gui.Parent = game:GetService("CoreGui") parented = true end)
+    end
+    if not parented then
+        gui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+    end
+
+    local wm = Instance.new("TextLabel", gui)
+    wm.Size = UDim2.new(0, 210, 0, 24)
+    wm.Position = UDim2.new(1, -220, 1, -34)
+    wm.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+    wm.BackgroundTransparency = 0.35
+    wm.BorderSizePixel = 0
+    wm.Text = "  Vertex Hub  •  by Jar"
+    wm.Font = Enum.Font.GothamBold
+    wm.TextColor3 = Color3.fromRGB(240, 240, 250)
+    wm.TextSize = 11
+    wm.TextXAlignment = Enum.TextXAlignment.Left
+
+    local c = Instance.new("UICorner", wm)
+    c.CornerRadius = UDim.new(0, 8)
+
+    local s = Instance.new("UIStroke", wm)
+    s.Color = Color3.fromRGB(100, 100, 115)
+    s.Thickness = 1
+    s.Transparency = 0.3
+
+    return gui
+end
+
+local function notify(title, text, duration)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = duration or 4,
+        })
+    end)
+end
+
+local body, err = safeFetch(TARGET)
+
+if not body then
+    warn("[VertexHub] Failed to fetch core: " .. tostring(err))
+    notify("Vertex Hub", "Failed to load. Check internet or URL.", 5)
+    _G.VertexHubLoaded = false
+    return
+end
+
+local loader, loadErr = loadstring(body)
+if not loader then
+    warn("[VertexHub] Compile error: " .. tostring(loadErr))
+    notify("Vertex Hub", "Compile error. Check console.", 5)
+    _G.VertexHubLoaded = false
+    return
+end
+
+local ok, runErr = pcall(loader)
+if not ok then
+    warn("[VertexHub] Runtime error: " .. tostring(runErr))
+    notify("Vertex Hub", "Runtime error. Check console.", 5)
+    _G.VertexHubLoaded = false
+    return
+end
+
+pcall(makeWatermark)
+warn("[VertexHub] Core loaded successfully")
